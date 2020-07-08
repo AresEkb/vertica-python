@@ -527,14 +527,16 @@ class Cursor(object):
         elif isinstance(py_obj, (datetime.datetime, datetime.date, datetime.time, UUID)):
             return self.format_quote(as_text(str(py_obj)), is_copy_data)
         else:
-            if is_copy_data:
-                return str(py_obj)
-            else:
-                msg = ("Cannot convert {} type object to an SQL string. "
-                       "Please register a new adapter for this type via the "
-                       "Cursor.register_sql_literal_adapter() function."
-                       .format(type(py_obj)))
-                raise TypeError(msg)
+            # if is_copy_data:
+            #     return str(py_obj)
+            # else:
+            #     msg = ("Cannot convert {} type object to an SQL string. "
+            #            "Please register a new adapter for this type via the "
+            #            "Cursor.register_sql_literal_adapter() function."
+            #            .format(type(py_obj)))
+            #     raise TypeError(msg)
+            # HACK: Support for sqlalchemy.sql.elements.ColumnClause, etc.
+            return str(py_obj)
 
     # noinspection PyArgumentList
     def format_operation_with_parameters(self, operation, parameters, is_copy_data=False):
@@ -552,6 +554,8 @@ class Cursor(object):
                 # such as :s and :start
                 match_str = u":{0}\\b".format(key)
                 operation = re.sub(match_str, lambda _: value, operation, flags=re.U)
+            # HACK: Support for pyformat
+            operation = operation % {k: self.object_to_string(v, is_copy_data) for k, v in parameters.items()}
 
         elif isinstance(parameters, (tuple, list)):
             tlist = []
